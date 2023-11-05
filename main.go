@@ -15,6 +15,7 @@ func main() {
 
 	s.HandleFunc("/createuser", createUser).Methods("POST")
 	s.HandleFunc("/", home).Methods("GET")
+	s.HandleFunc("/signin", signInUser).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8080", s)) //Run Server
 }
