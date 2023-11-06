@@ -23,6 +23,12 @@ type Todo struct {
 	Completed   bool   `bson:"completed"`
 }
 
+type AddTodoRequest struct {
+	UserName    string `bson:"username"`
+	Title       string `bson:"title"`
+	Description string `bson:"description"`
+}
+
 var userCollection = db().Database("go-todo").Collection("users")
 
 func createUser(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +40,8 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	user.Todos = []Todo{}
 	insertResult, err := userCollection.InsertOne(context.TODO(), user)
 	if err != nil {
 		log.Fatal(err)
@@ -67,6 +75,30 @@ func signInUser(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Found a Single Document: ", result)
 	json.NewEncoder(w).Encode(result)
+}
+
+func addTodo(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: addTodo")
+	w.Header().Set("Content-type", "application/json")
+
+	var addTodo AddTodoRequest
+	err := json.NewDecoder(r.Body).Decode((&addTodo))
+
+	fmt.Println(addTodo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filter := bson.M{"username": addTodo.UserName}
+	newTodo := Todo{Title: addTodo.Title, Description: addTodo.Description, Completed: false}
+	update := bson.M{"$push": bson.M{"todos": newTodo}}
+
+	_, err = userCollection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	json.NewEncoder(w).Encode(newTodo)
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
