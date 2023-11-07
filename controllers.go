@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type User struct {
@@ -99,6 +100,34 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(newTodo)
+}
+
+func getTodos(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: getTodo")
+	w.Header().Set("Content-type", "application/json")
+
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filter := bson.M{"username": user.UserName}
+	opts := options.FindOne().SetProjection(bson.D{{Key: "todos", Value: 1}})
+	var result User
+	err = userCollection.FindOne(context.TODO(), filter, opts).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	inCompleteTodos := []Todo{}
+
+	for _, todo := range result.Todos {
+		if todo.Completed == false {
+			inCompleteTodos = append(inCompleteTodos, todo)
+		}
+	}
+	json.NewEncoder(w).Encode(inCompleteTodos)
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
